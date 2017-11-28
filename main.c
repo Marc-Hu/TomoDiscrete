@@ -127,9 +127,133 @@ int enumeration_rec(int k, int c, tomo *t){
 	FIN PARTIE FONCTIONS DE TOMOGRAPHIE
 
 *********************************************/
+/*********************************************
+
+        PARTIE CHARGEMENT D'UN FICHIER
+                
+*********************************************/
+
+/*
+Fonction qui charge un fichier
+Demande à l'utilisateur de selectionner un fichier qui se trouve dans instances
+Si il n'existe pas alors on reviens au menu principal
+Sinon on récupère le nombre de ligne et le nombre de colonne
+Et pour finir on va lancer la fonction d'allocation dynamique de la mémoire
+*/
+int chargerUnFichier(tomo *t){
+    FILE* fichier = NULL;
+    char filename[10]="", info[6]="", nbColonne[3]="", nbLigne[3]="";
+    int i=0, j=0;
+    printf("Entrer le nom du fichier à charger parmi ces propositions (uniquement le chiffre): \n");
+    system("ls instances/*.tom");
+    scanf("%s", &filename);
+    fichier = fopen(&filename, "r");
+    if(fichier==NULL){
+        printf("Impossible d'atteindre le fichier! Retour au menu principal\n");	//Si le fichier n'est pas accessible alors on sort de la fonction
+        sleep(3);
+        return 0;
+    }
+    printf("Fichier ouvert avec succès!\n");
+    fgets (info, 6, fichier);
+    for(i=0; i<6; i++){				//On va mettre dans les différents chaînes de caractères les valeurs.
+    	if(info[i]!=' ' && i<2)		//Si on ne rencontre pas d'expace et qu'on a déjà lu 2 caractère on met les caractères dans la chaine de caractère nbCol
+    		nbLigne[i]=info[i];
+    	else if (info[i]==' '){		//Sinon si on rencontre le caractère vide (cad l'espace) on incrémente i pour passer au nombre de ligne et on met le première caractère dans nbLign (on oublie pas d'incrémenter j)
+    		i++;
+    		nbColonne[j]=info[i];
+    		j++;
+    	}
+    	else{
+    		nbColonne[j]=info[i];		//Sinon si on a passé toutes les conditions on va mettre les caractères dans nbLign
+    		j++;
+    	}
+    }
+    printf("Nombre de lignes : %d; Nombre de colonnes : %d\n", atoi(nbLigne), atoi(nbColonne));
+    t->nbLigne=atoi(nbLigne);
+    t->nbColonne=atoi(nbColonne);
+    if(alloueTomo(t)){
+        if(initSegBloc(t, fichier)){
+            fclose(fichier);
+            return 1;
+        }
+    }
+        
+}
+
+/*
+Fonction qui va allouer dynamiquement les tableaux à 2 dimensions de la structure tomographie discrète
+Va allouer n*m pour M qui est la matrice principal
+Va allouer n*m-1 pour L qui est la matrice avec les segments de blocs de la ligne
+Va allour (n-1)*m pour C qui est la matrice avec les segments de blocs de la colonne
+*/
+int alloueTomo(tomo *t){
+    int *colonne=malloc(t->nbColonne*sizeof(int));
+    int *ligne=malloc(t->nbLigne*sizeof(int));
+    int *segColonne=malloc((t->nbColonne-1)*sizeof(int));
+    int *segLigne=malloc((t->nbLigne-1)*sizeof(int));
+    int i=0;
+    t->M=malloc(t->nbLigne*sizeof(int));
+    for(i=0; i<t->nbLigne;i++)
+        t->M[i]=colonne;
+    t->L=malloc(t->nbLigne*sizeof(int));
+    for(i=0; i<t->nbLigne; i++)
+        t->L[i]=segColonne;
+    t->C=malloc(t->nbColonne*sizeof(int));
+    for(i=0; i<t->nbColonne; i++)
+        t->C[i]=segLigne;
+    return 1;
+}
+
+int initSegBloc(tomo *t, FILE* fichier){
+    char val[10]="";
+    int i=0, j=0, k=0;
+    for(i=0; i<t->nbLigne; i++){
+        fgets(val, 10, fichier);
+        for(j=0; j<10; j++){
+            printf("test\n");
+            if(val[j]!=' '){
+                t->L[k]=atoi(val[j]);
+                k++;
+            }
+        }
+        k=0;
+    }
+    fgets(val, 10, fichier);
+    for(i=0; i<t->nbColonne; i++){
+        fgets(val, 10, fichier);
+        for(j=0; j<10; j++){
+            if(val[j]!=' '){
+                t->C[k]=atoi(val[j]);
+                k++;
+            }
+        }
+        k=0;
+    }
+    printf("%s\n", &val);
+    affichageTest(t);
+    return 1;
+}
+
+void affichageTest(tomo *t){
+    int i=0, j=0;
+    for(i=0; i<t->nbLigne; i++){
+        for(j=0; j<t->nbLigne-1; j++){
+            printf("%d\t", t->L[i][j]);
+        }
+        printf("\n");
+    }
+    sleep(3);
+}
+/*********************************************
+
+    FIN PARTIE CHARGEMENT D'UN FICHIER
+                
+*********************************************/
 
 /*********************************************
-				PARTIE MENU
+
+                PARTIE MENU
+                
 *********************************************/
 
 
@@ -164,10 +288,13 @@ void initialisationMenu(menu *p, int nb){
 
 //Libère la mémoire pour le menu, la flèche, le tableau de chaine de caractère, les chaines de charactère
 
-void libereMemoire(menu *p){
+void libereMemoire(menu *p, tomo *t){
 	free(p->menu);
 	free(p->fleche);
-	free(p->choix);
+    free(p->choix);
+    free(t->M);
+	free(t->L);
+	free(t->C);
 }
 
 /*
@@ -309,17 +436,22 @@ int lanceMenu (menu *p){
 */
 
 int menuD(){
-	menu p;
+    menu p;
+    tomo t;
 	int i;
 	initialisationMenu(&p, 3);
 	affichageMenu(&p);
-	while(i!=2){
+	while(i!=3){
 		i=lanceMenu(&p);
 		switch (i){
-			case 1 : 
+            case 1 : 
+                chargerUnFichier(&t);
 				break;
 			case 2 :
-				libereMemoire(&p);
+				libereMemoire(&p, &t);
+                break;
+            case 3 :
+                libereMemoire(&p, &t);
 				break;
 		} 
 	}
