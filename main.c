@@ -1,7 +1,7 @@
 /**
  * \file Tomographie
  * \author HU Marc
- * \date 27 nomvembre 2017
+ * \date 27 novembre 2017
  *
  * Programme regroupant les fonctions du mini-projet tomographie discrète
  */
@@ -173,7 +173,7 @@ int chargerUnFichier(tomo *t){
     t->nbColonne=atoi(nbColonne);
     if(alloueTomo(t)){
         if(initSegBloc(t, fichier)){
-            fclose(fichier);
+            //fclose(fichier);
             return 1;
         }
     }
@@ -192,44 +192,60 @@ int alloueTomo(tomo *t){
     int *segColonne=malloc((t->nbColonne-1)*sizeof(int));
     int *segLigne=malloc((t->nbLigne-1)*sizeof(int));
     int i=0;
-    t->M=malloc(t->nbLigne*sizeof(int));
+    t->M=ligne;
     for(i=0; i<t->nbLigne;i++)
         t->M[i]=colonne;
-    t->L=malloc(t->nbLigne*sizeof(int));
+    t->L=ligne;
     for(i=0; i<t->nbLigne; i++)
-        t->L[i]=segColonne;
-    t->C=malloc(t->nbColonne*sizeof(int));
+        t->L[i]=segLigne;
+    t->C=colonne;
     for(i=0; i<t->nbColonne; i++)
-        t->C[i]=segLigne;
+        t->C[i]=segColonne;
     return 1;
 }
 
+/*
+Fonction qui va initialiser les deux tableau 2d afin d'y mettre les nombres de bloc par segement
+*/
 int initSegBloc(tomo *t, FILE* fichier){
     char val[10]="";
-    int i=0, j=0, k=0;
+    int i=0, j=0, k=0, temp=0;
+    //Tableau des segements pour les lignes
     for(i=0; i<t->nbLigne; i++){
-        fgets(val, 10, fichier);
-        for(j=0; j<10; j++){
-            printf("test\n");
-            if(val[j]!=' '){
-                t->L[k]=atoi(val[j]);
+        if(fgets(val, 15, fichier)!=NULL){
+            //printf("%s\n", &val);
+            for(j=0; j<15; j++){
+                if(val[j]-48>=0){
+                    t->L[i][k]=val[j]-48;
+                    k++;
+                }
+            }
+            while(k<t->nbLigne){
+                t->L[i][k]=-1;
                 k++;
             }
+            k=0;
         }
-        k=0;
+        //printf("\n%d\n\n", i);
     }
-    fgets(val, 10, fichier);
-    for(i=0; i<t->nbColonne; i++){
-        fgets(val, 10, fichier);
-        for(j=0; j<10; j++){
-            if(val[j]!=' '){
-                t->C[k]=atoi(val[j]);
-                k++;
-            }
-        }
-        k=0;
-    }
-    printf("%s\n", &val);
+    // fgets(val, 10, fichier); // Il y a une ligne vide dans le fichier, on saute juste la ligne vide
+    // //Tableau des segements pour les colonnes
+    // for(i=0; i<t->nbColonne; i++){
+    //     printf("test1\n");
+    //     if(fgets(val, 15, fichier)!=NULL){
+    //         for(j=0; j<15; j++){
+    //             if(val[j]-48>=0){
+    //                 t->C[i][k]=val[j]-48;
+    //                 k++;
+    //             }
+    //         }
+    //         while(k<t->nbColonne){
+    //             t->C[i][k]=-1;
+    //             k++;
+    //         }
+    //         k=0;
+    //     }
+    // }
     affichageTest(t);
     return 1;
 }
@@ -237,9 +253,9 @@ int initSegBloc(tomo *t, FILE* fichier){
 void affichageTest(tomo *t){
     int i=0, j=0;
     for(i=0; i<t->nbLigne; i++){
-        for(j=0; j<t->nbLigne-1; j++){
-            printf("%d\t", t->L[i][j]);
-        }
+        for(j=0; t->L[i][j]!=-1 && j<t->nbLigne;j++)
+            printf("test%d\t", t->L[i][j]);
+        j=0;
         printf("\n");
     }
     sleep(3);
@@ -292,9 +308,7 @@ void libereMemoire(menu *p, tomo *t){
 	free(p->menu);
 	free(p->fleche);
     free(p->choix);
-    free(t->M);
-	free(t->L);
-	free(t->C);
+    free(t->C);
 }
 
 /*
