@@ -20,8 +20,8 @@
 
 typedef struct{
     int **M;
-    int **L;
-    int **C;
+    int *L;
+    int *C;
     int nbLigne;
     int nbColonne;
 } tomo;
@@ -61,10 +61,10 @@ int compare_seq_ligne(tomo *t, int i){
                 sequence++;
             }
             temp++;         //On incrémente le compteur
-            if(temp>t->L[i][sequence]) //On regarde si c'est pas supérieur au nb de bloc dans la séquence
+            if(temp>t->L[t->nbLigne*i+sequence]) //On regarde si c'est pas supérieur au nb de bloc dans la séquence
                 return 0;
         } else {    //sinon si c'est pas colorié
-            if(estDansBloc && temp!=t->L[i][sequence]) //si on était dans une séquence on regarde si le compteur est égale au nb bloc dans la séquence
+            if(estDansBloc && temp!=t->L[t->nbLigne*i+sequence]) //si on était dans une séquence on regarde si le compteur est égale au nb bloc dans la séquence
                 return 0;   //Retourne faux
             estDansBloc=0;  //si c'est toujours juste alors on est plus dans un bloc
         }
@@ -82,10 +82,10 @@ int compare_seq_col(tomo *t, int j){
                 sequence++;
             }
             temp++; 
-            if(temp>t->C[i][sequence])
+            if(temp>t->C[t->nbColonne*i+sequence])
                 return 0;
         } else { 
-            if(estDansBloc && temp!=t->C[i][sequence])
+            if(estDansBloc && temp!=t->C[t->nbColonne*i+sequence])
                 return 0; 
             estDansBloc=0;
         }
@@ -144,7 +144,7 @@ int chargerUnFichier(tomo *t){
     FILE* fichier = NULL;
     char filename[10]="", info[6]="", nbColonne[3]="", nbLigne[3]="";
     int i=0, j=0;
-    printf("Entrer le nom du fichier à charger parmi ces propositions (uniquement le chiffre): \n");
+    printf("Entrer le nom du fichier à charger parmi ces propositions (écrire le nom entier): \n");
     system("ls instances/*.tom");
     scanf("%s", &filename);
     fichier = fopen(&filename, "r");
@@ -189,19 +189,24 @@ Va allour (n-1)*m pour C qui est la matrice avec les segments de blocs de la col
 int alloueTomo(tomo *t){
     int *colonne=malloc(t->nbColonne*sizeof(int));
     int *ligne=malloc(t->nbLigne*sizeof(int));
-    int *segColonne=malloc((t->nbColonne-1)*sizeof(int));
-    int *segLigne=malloc((t->nbLigne-1)*sizeof(int));
+    int *segColonne=malloc((t->nbColonne*t->nbColonne)*sizeof(int));
+    int *segLigne=malloc((t->nbLigne*t->nbLigne)*sizeof(int));
     int i=0;
     t->M=ligne;
     for(i=0; i<t->nbLigne;i++)
         t->M[i]=colonne;
-    t->L=ligne;
-    for(i=0; i<t->nbLigne; i++)
-        t->L[i]=segLigne;
-    t->C=colonne;
-    for(i=0; i<t->nbColonne; i++)
-        t->C[i]=segColonne;
+    t->L=segLigne;
+    t->C=segColonne;
+    initialiseLigneColonne(t);
     return 1;
+}
+
+void initialiseLigneColonne(tomo *t){
+    int i=0;
+    for(i=0; i<t->nbLigne*t->nbLigne; i++)
+        t->L[i]=-1;
+    for(i=0; i<t->nbColonne*t->nbColonne; i++)
+        t->C[i]=-1;
 }
 
 /*
@@ -212,51 +217,55 @@ int initSegBloc(tomo *t, FILE* fichier){
     int i=0, j=0, k=0, temp=0;
     //Tableau des segements pour les lignes
     for(i=0; i<t->nbLigne; i++){
-        if(fgets(val, 15, fichier)!=NULL){
-            //printf("%s\n", &val);
-            for(j=0; j<15; j++){
-                if(val[j]-48>=0){
-                    t->L[i][k]=val[j]-48;
+        if(fgets(val, t->nbLigne*t->nbLigne, fichier)!=NULL){
+            // printf("%s\n", &val);
+            t->L[i*t->nbLigne]=val[0]-48;
+            for(j=0; j<4*t->L[i*t->nbLigne]+t->L[i*t->nbLigne]*2; j++){ //Limitation de la chaîne de caractère en fonction de la première valeur
+                // printf("%c\t", val[j]);
+                if(val[j]>=48 && val[j]<=57){
+                    // printf("%d\t", val[j]-48);
+                    t->L[t->nbLigne*i+k]=val[j]-48;
                     k++;
                 }
             }
-            while(k<t->nbLigne){
-                t->L[i][k]=-1;
-                k++;
+            k=0;
+        }
+        printf("\n");
+    }
+    fgets(val, 10, fichier); // Il y a une ligne vide dans le fichier, on saute juste la ligne vide
+    //Tableau des segements pour les colonnes
+    for(i=0; i<t->nbColonne; i++){
+        if(fgets(val, t->nbColonne*t->nbColonne, fichier)!=NULL){
+            printf("%s\n", &val);
+            t->C[i*t->nbColonne]=val[0]-48;
+            for(j=0; j<4*t->C[i*t->nbColonne]+t->C[i*t->nbColonne]*2; j++){
+                if(val[j]>=48 && val[j]<=57){
+                    // printf("%d\t", val[j]-48);
+                    t->C[t->nbColonne*i+k]=val[j]-48;
+                    k++;
+                }
             }
             k=0;
         }
-        //printf("\n%d\n\n", i);
     }
-    // fgets(val, 10, fichier); // Il y a une ligne vide dans le fichier, on saute juste la ligne vide
-    // //Tableau des segements pour les colonnes
-    // for(i=0; i<t->nbColonne; i++){
-    //     printf("test1\n");
-    //     if(fgets(val, 15, fichier)!=NULL){
-    //         for(j=0; j<15; j++){
-    //             if(val[j]-48>=0){
-    //                 t->C[i][k]=val[j]-48;
-    //                 k++;
-    //             }
-    //         }
-    //         while(k<t->nbColonne){
-    //             t->C[i][k]=-1;
-    //             k++;
-    //         }
-    //         k=0;
-    //     }
-    // }
     affichageTest(t);
     return 1;
 }
 
 void affichageTest(tomo *t){
     int i=0, j=0;
-    for(i=0; i<t->nbLigne; i++){
-        for(j=0; t->L[i][j]!=-1 && j<t->nbLigne;j++)
-            printf("test%d\t", t->L[i][j]);
-        j=0;
-        printf("\n");
+    for(i=0; i<t->nbLigne*t->nbLigne; i++){
+        if(i%t->nbLigne==0)
+            printf("\n");
+        if(t->L[i]!=-1)
+            printf("%d\t", t->L[i]);
+    }
+    printf("\n");
+    for(i=0; i<t->nbColonne*t->nbColonne; i++){
+        if(i%t->nbColonne==0)
+            printf("\n");
+        if(t->C[i]!=-1)
+            printf("%d\t", t->C[i]);
     }
     sleep(3);
 }
@@ -459,6 +468,7 @@ int menuD(){
 		i=lanceMenu(&p);
 		switch (i){
             case 1 : 
+                clear_terminal();
                 chargerUnFichier(&t);
 				break;
 			case 2 :
