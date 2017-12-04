@@ -19,7 +19,7 @@
 *********************************************/
 
 typedef struct{
-    int **M;
+    int *M;
     int *L;
     int *C;
     int nbLigne;
@@ -55,7 +55,7 @@ séquence lorsqu'on rentre dans une séquence de x blocs.
 int compare_seq_ligne(tomo *t, int i){
     int j=0, sequence=0, temp=0, estDansBloc=0;
     for(j=0; j<t->nbColonne; j++){
-        if(t->M[j][i]!=0){ //Si la case est colorié alors on est dans une séquence de bloc
+        if(t->M[i*t->nbColonne+j]!=0){ //Si la case est colorié alors on est dans une séquence de bloc
             if(!estDansBloc){
                 estDansBloc=1;
                 sequence++;
@@ -75,8 +75,8 @@ int compare_seq_ligne(tomo *t, int i){
 //Même fonction que celui au-dessus sauf que c'est pour comparer une colonne
 int compare_seq_col(tomo *t, int j){
     int i=0, sequence=0, temp=0, estDansBloc=0;
-    for(i=0; i<t->nbColonne; i++){
-        if(t->M[j][i]!=0){
+    for(i=0; i<t->nbLigne; i++){
+        if(t->M[i*t->nbLigne+j]!=0){
             if(!estDansBloc){
                 estDansBloc=1;
                 sequence++;
@@ -94,14 +94,15 @@ int compare_seq_col(tomo *t, int j){
 }
 
 int enumeration_rec(int k, int c, tomo *t){
+    printf("cycle numéro : %d\n", k);
     int ok, raz, i, j;
     i=k/t->nbColonne;
     j=k%t->nbColonne;
-    if(t->M[i][j]==0){
-        t->M[i][j]=c;
+    if(t->M[i*t->nbColonne+j]==0){
+        t->M[i*t->nbColonne+j]=c;
         raz=1;
     }else{
-        if(t->M[i][j]!=c){
+        if(t->M[i*t->nbColonne+j]!=c){
             return 0;
         }else {
             raz=0;
@@ -111,6 +112,8 @@ int enumeration_rec(int k, int c, tomo *t){
     if(i==t->nbLigne-1){
         ok=compare_seq_col(t, j);
     }
+    if(ok && j==t->nbColonne-1)
+        ok=compare_seq_ligne(t, i);
     if(ok){
         if(i==t->nbLigne-1 && j==t->nbLigne-1){
             return 1;
@@ -118,7 +121,7 @@ int enumeration_rec(int k, int c, tomo *t){
         enumeration_rec(k+1, c, t);
     }
     if(!ok&&raz)
-        t->M[i][j]=0;
+        t->M[i*t->nbColonne+j]=0;
     return ok;
 }
 
@@ -173,7 +176,7 @@ int chargerUnFichier(tomo *t){
     t->nbColonne=atoi(nbColonne);
     if(alloueTomo(t)){
         if(initSegBloc(t, fichier)){
-            //fclose(fichier);
+            fclose(fichier);
             return 1;
         }
     }
@@ -187,14 +190,11 @@ Va allouer n*m-1 pour L qui est la matrice avec les segments de blocs de la lign
 Va allour (n-1)*m pour C qui est la matrice avec les segments de blocs de la colonne
 */
 int alloueTomo(tomo *t){
-    int *colonne=malloc(t->nbColonne*sizeof(int));
-    int *ligne=malloc(t->nbLigne*sizeof(int));
+    int *matrice=malloc((t->nbColonne*t->nbLigne)*sizeof(int));
     int *segColonne=malloc((t->nbColonne*t->nbColonne)*sizeof(int));
     int *segLigne=malloc((t->nbLigne*t->nbLigne)*sizeof(int));
     int i=0;
-    t->M=ligne;
-    for(i=0; i<t->nbLigne;i++)
-        t->M[i]=colonne;
+    t->M=matrice;
     t->L=segLigne;
     t->C=segColonne;
     initialiseLigneColonne(t);
@@ -202,11 +202,13 @@ int alloueTomo(tomo *t){
 }
 
 void initialiseLigneColonne(tomo *t){
-    int i=0;
-    for(i=0; i<t->nbLigne*t->nbLigne; i++)
+    int i=0, nbLigne=t->nbLigne, nbColonne=t->nbColonne;
+    for(i=0; i<nbLigne*nbLigne; i++)
         t->L[i]=-1;
-    for(i=0; i<t->nbColonne*t->nbColonne; i++)
+    for(i=0; i<nbColonne*nbColonne; i++)
         t->C[i]=-1;
+    for(i=0; i<nbLigne*nbColonne; i++)
+        t->M[i]=0;
 }
 
 /*
@@ -230,13 +232,12 @@ int initSegBloc(tomo *t, FILE* fichier){
             }
             k=0;
         }
-        printf("\n");
     }
     fgets(val, 10, fichier); // Il y a une ligne vide dans le fichier, on saute juste la ligne vide
     //Tableau des segements pour les colonnes
     for(i=0; i<t->nbColonne; i++){
         if(fgets(val, t->nbColonne*t->nbColonne, fichier)!=NULL){
-            printf("%s\n", &val);
+            //printf("%s\n", &val);
             t->C[i*t->nbColonne]=val[0]-48;
             for(j=0; j<4*t->C[i*t->nbColonne]+t->C[i*t->nbColonne]*2; j++){
                 if(val[j]>=48 && val[j]<=57){
@@ -254,21 +255,31 @@ int initSegBloc(tomo *t, FILE* fichier){
 
 void affichageTest(tomo *t){
     int i=0, j=0;
+    printf("Affichage test de la récupération des valeur d'un fichier\nSegment bloc ligne:");
     for(i=0; i<t->nbLigne*t->nbLigne; i++){
         if(i%t->nbLigne==0)
             printf("\n");
         if(t->L[i]!=-1)
             printf("%d\t", t->L[i]);
     }
-    printf("\n");
+    printf("\nAffichage test de la récupération des valeur d'un fichier\nSegment bloc colonne:");
     for(i=0; i<t->nbColonne*t->nbColonne; i++){
         if(i%t->nbColonne==0)
             printf("\n");
         if(t->C[i]!=-1)
             printf("%d\t", t->C[i]);
     }
-    sleep(3);
+    enumeration_rec(0, 1, t);
+    for(i=0; i<t->nbColonne*t->nbLigne; i++){
+        if(i%t->nbColonne==0)
+            printf("\n");
+        printf("%d\t", t->M[i]);
+    }
+    // printf("\n\nAppuyer sur une touche pour revenir au menu principal\n");
+    // getchar();
+    // getchar();
 }
+
 /*********************************************
 
     FIN PARTIE CHARGEMENT D'UN FICHIER
@@ -318,6 +329,8 @@ void libereMemoire(menu *p, tomo *t){
 	free(p->fleche);
     free(p->choix);
     free(t->C);
+    free(t->L);
+    free(t->M);
 }
 
 /*
