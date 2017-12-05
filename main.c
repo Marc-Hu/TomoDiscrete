@@ -22,6 +22,7 @@ typedef struct{
     int *M;
     int *L;
     int *C;
+    int *TT;
     int nbLigne;
     int nbColonne;
 } tomo;
@@ -141,14 +142,94 @@ int enumeration_rec(int k, int c, tomo *t){
     FIN PARTIE FONCTIONS DE TOMOGRAPHIE
                 ENUMERATION
 
-*********************************************/
+*********************************************/  
 /*********************************************
 
         PARTIE FONCTIONS DE TOMOGRAPHIE
                     VECTEUR
 
 *********************************************/
+/*
+Fonction testSiAucun qui renvoie 1 si val n'apparaît dans aucune case dans la matrice tomo entre j1 et j2
+*/
+int testSiAucun(tomo *t, int j1, int j2, int val){
+    int i;
+    for(i=j1; i<j2; i++){
+        if(t->M[i]==val)
+            return 0;
+    }
+    return 1;
+}
 
+/*
+Fonction qui va tester s'il existe un coloriage possible pour une ligne de la matrice
+*/
+int testVecteurLigne_Rec(tomo *t, int j, int l){
+    int c1, c2, colonne=t->nbColonne, Ll=t->L[t->nbLigne*l];
+    if(l==0)
+        return testSiAucun(t, 0, j, 2);
+    if(l==1 && j==Ll-1)
+        return testSiAucun(t, 0, j, 1);
+    if(j<=Ll-1)
+        return 0;
+    if(t->TT[j*colonne+l]!=-1)
+        return t->TT[j*colonne+l];
+    if(t->M[j]==2){
+        c1=0;
+    }else{
+        c1=testVecteurLigne_Rec(t, j-1, l);
+    }
+    if(!testSiAucun(t, j-(Ll-1), j, 1)){
+        c2=0;
+    }else{
+        if(t->M[j-Ll]==2){
+            c2=0;
+        }else{
+            c2=testVecteurLigne_Rec(t, j-Ll-1, l-1);
+        }
+    }
+    t->TT[j*colonne+l]=c1 || c2;
+    return t->TT[j*colonne+l];
+}
+
+/*
+Fonction qui va tester s'il existe un coloriage possible pour une colonne de la matrice
+*/
+int testVecteurColonne_Rec(tomo *t, int j, int l){
+    int c1, c2, colonne=t->nbColonne, Cl=t->C[t->nbColonne*l];
+    if(l==0)
+        return testSiAucun(t, 0, j, 2);
+    if(l==1 && j==Cl-1)
+        return testSiAucun(t, 0, j, 1);
+    if(j<=Cl-1)
+        return 0;
+    if(t->TT[j*colonne+l]!=-1)
+        return t->TT[j*colonne+l];
+    if(t->M[j]==2){
+        c1=0;
+    }else{
+        c1=testVecteurLigne_Rec(t, j-1, l);
+    }
+    if(!testSiAucun(t, j-(Cl-1), j, 1)){
+        c2=0;
+    }else{
+        if(t->M[j-Cl]==2){
+            c2=0;
+        }else{
+            c2=testVecteurLigne_Rec(t, j-Cl-1, l-1);
+        }
+    }
+    t->TT[j*colonne+l]=c1 || c2;
+    return t->TT[j*colonne+l];
+}
+
+void testInstanceRealisable(){
+
+}
+
+void testInstanceNonRealisable(){
+
+}
 /*********************************************
 
     FIN PARTIE FONCTIONS DE TOMOGRAPHIE
@@ -168,7 +249,7 @@ Si il n'existe pas alors on reviens au menu principal
 Sinon on récupère le nombre de ligne et le nombre de colonne
 Et pour finir on va lancer la fonction d'allocation dynamique de la mémoire
 */
-int chargerUnFichier(tomo *t){
+int chargerUnFichier(tomo *t, char question){
     FILE* fichier = NULL;
     char filename[10]="", info[6]="", nbColonne[3]="", nbLigne[3]="";
     int i=0, j=0;
@@ -222,6 +303,7 @@ int alloueTomo(tomo *t){
     t->M=matrice;
     t->L=segLigne;
     t->C=segColonne;
+    t->TT=matrice;
     initialiseLigneColonne(t);
     return 1;
 }
@@ -232,8 +314,10 @@ void initialiseLigneColonne(tomo *t){
         t->L[i]=-1;
     for(i=0; i<nbColonne*nbColonne; i++)
         t->C[i]=-1;
-    for(i=0; i<nbLigne*nbColonne; i++)
+    for(i=0; i<nbLigne*nbColonne; i++){
         t->M[i]=0;
+        t->TT[i]=-1;
+    }
 }
 
 /*
@@ -350,9 +434,10 @@ void initialisationMenu(menu *p, int nb){
 	for (i=0; i<(p->nbChoix); i++)
 		p->menu[i]=i+1;
 	p->fleche[0]='>';
-    p->choix[0]="Chargement d'un fichier";
-    p->choix[1]="A compléter";
-	p->choix[2]="Quitter";
+    p->choix[0]="Enumération";
+    p->choix[1]="Cas du vecteur";
+    p->choix[2]="Propagation";
+	p->choix[3]="Quitter";
 }
 
 //Libère la mémoire pour le menu, la flèche, le tableau de chaine de caractère, les chaines de charactère
@@ -364,6 +449,7 @@ void libereMemoire(menu *p, tomo *t){
     free(t->C);
     free(t->L);
     free(t->M);
+    free(t->TT);
 }
 
 /*
@@ -508,21 +594,24 @@ int menuD(){
     menu p;
     tomo t;
 	int i;
-	initialisationMenu(&p, 3);
+	initialisationMenu(&p, 4);
 	affichageMenu(&p);
 	while(i!=3){
 		i=lanceMenu(&p);
 		switch (i){
             case 1 : 
                 clear_terminal();
-                chargerUnFichier(&t);
+                chargerUnFichier(&t, 'e');
 				break;
 			case 2 :
-				libereMemoire(&p, &t);
+                chargerUnFichier(&t, 'v');
                 break;
             case 3 :
+                chargerUnFichier(&t, 'p');
+                break;
+            case 4:
                 libereMemoire(&p, &t);
-				break;
+                break;
 		} 
 	}
 	return 0;
