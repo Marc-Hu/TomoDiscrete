@@ -41,7 +41,8 @@ typedef struct{
 
 /*********************************************
 
-		PARTIE FONCTIONS DE TOMOGRAPHIE
+        PARTIE FONCTIONS DE TOMOGRAPHIE
+                ENUMERATION
 
 *********************************************/
 
@@ -55,46 +56,56 @@ séquence lorsqu'on rentre dans une séquence de x blocs.
 int compare_seq_ligne(tomo *t, int i){
     int j=0, sequence=0, temp=0, estDansBloc=0;
     for(j=0; j<t->nbColonne; j++){
-        if(t->M[i*t->nbColonne+j]!=0){ //Si la case est colorié alors on est dans une séquence de bloc
-            if(!estDansBloc){
-                estDansBloc=1;
-                sequence++;
+        if(t->M[i*t->nbColonne+j]==2){ //Si la case est colorié alors on est dans une séquence de bloc
+            if(estDansBloc==0){ //Si on était pas dans un bloc auparavant
+                sequence++; //On incrémente sequence qui nous permet de récupérer la valeur dans la tableau L
+                estDansBloc=1; //On est désormais dans un bloc
             }
-            temp++;         //On incrémente le compteur
-            if(temp>t->L[t->nbLigne*i+sequence]) //On regarde si c'est pas supérieur au nb de bloc dans la séquence
+            temp++;//On incrémente temp pour le tester plus tard
+            if(temp>t->L[t->nbLigne*i+sequence])    //Si on constate que temp est supérieur à la valeur du bloc d'index séquence
                 return 0;
-        } else {    //sinon si c'est pas colorié
-            if(estDansBloc && temp!=t->L[t->nbLigne*i+sequence]) //si on était dans une séquence on regarde si le compteur est égale au nb bloc dans la séquence
-                return 0;   //Retourne faux
-            estDansBloc=0;  //si c'est toujours juste alors on est plus dans un bloc
+        } else if (estDansBloc && temp!=t->L[t->nbLigne*j+sequence]){ // si la case est différente de 2 et qu'on était dans un bloc auparavant, on regarde si la valeur est différente
+            return 0;
+        } else {    //sinon si c'est pas colorié et que tout va bien on réinitialise la val temp et estDansBloc
+            temp=0;
+            estDansBloc=0;
         }
     }
-    return 1; //Retourne vrai (1) si tout va bien
+    if(t->L[t->nbLigne*i]==sequence)
+        return 1;
+    return 0; //Retourne vrai (1) si tout va bien
 }
 
 //Même fonction que celui au-dessus sauf que c'est pour comparer une colonne
 int compare_seq_col(tomo *t, int j){
     int i=0, sequence=0, temp=0, estDansBloc=0;
     for(i=0; i<t->nbLigne; i++){
-        if(t->M[i*t->nbLigne+j]!=0){
-            if(!estDansBloc){
-                estDansBloc=1;
+        if(t->M[t->nbColonne*i+j]==2){
+            if(estDansBloc==0){
                 sequence++;
+                estDansBloc=1;
             }
-            temp++; 
-            if(temp>t->C[t->nbColonne*i+sequence])
+            temp++;
+            if(temp>t->C[t->nbColonne*j+sequence])
                 return 0;
-        } else { 
-            if(estDansBloc && temp!=t->C[t->nbColonne*i+sequence])
-                return 0; 
+        }else if(estDansBloc && temp!=t->C[t->nbColonne*j+sequence]){
+            return 0;
+        }else{
+            temp=0;
             estDansBloc=0;
         }
     }
-    return 1;
+    if(t->C[t->nbColonne*j]==sequence)
+        return 1;
+    return 0;
 }
 
 int enumeration_rec(int k, int c, tomo *t){
     printf("cycle numéro : %d\n", k);
+    if(c==1)
+        printf("Appel c=1\n");
+    else   
+        printf("Appel c=2\n");
     int ok, raz, i, j;
     i=k/t->nbColonne;
     j=k%t->nbColonne;
@@ -115,10 +126,10 @@ int enumeration_rec(int k, int c, tomo *t){
     if(ok && j==t->nbColonne-1)
         ok=compare_seq_ligne(t, i);
     if(ok){
-        if(i==t->nbLigne-1 && j==t->nbLigne-1){
+        if(i==t->nbLigne-1 && j==t->nbColonne-1){
             return 1;
         }
-        enumeration_rec(k+1, c, t);
+        ok=enumeration_rec(k+1, 1, t) || enumeration_rec(k+1, 2, t);
     }
     if(!ok&&raz)
         t->M[i*t->nbColonne+j]=0;
@@ -127,7 +138,21 @@ int enumeration_rec(int k, int c, tomo *t){
 
 /*********************************************
 
-	FIN PARTIE FONCTIONS DE TOMOGRAPHIE
+    FIN PARTIE FONCTIONS DE TOMOGRAPHIE
+                ENUMERATION
+
+*********************************************/
+/*********************************************
+
+        PARTIE FONCTIONS DE TOMOGRAPHIE
+                    VECTEUR
+
+*********************************************/
+
+/*********************************************
+
+    FIN PARTIE FONCTIONS DE TOMOGRAPHIE
+                    VECTEUR
 
 *********************************************/
 /*********************************************
@@ -219,7 +244,7 @@ int initSegBloc(tomo *t, FILE* fichier){
     int i=0, j=0, k=0, temp=0;
     //Tableau des segements pour les lignes
     for(i=0; i<t->nbLigne; i++){
-        if(fgets(val, t->nbLigne*t->nbLigne, fichier)!=NULL){
+        if(fgets(val, 4+t->nbLigne*2, fichier)!=NULL){
             // printf("%s\n", &val);
             t->L[i*t->nbLigne]=val[0]-48;
             for(j=0; j<4*t->L[i*t->nbLigne]+t->L[i*t->nbLigne]*2; j++){ //Limitation de la chaîne de caractère en fonction de la première valeur
@@ -236,7 +261,7 @@ int initSegBloc(tomo *t, FILE* fichier){
     fgets(val, 10, fichier); // Il y a une ligne vide dans le fichier, on saute juste la ligne vide
     //Tableau des segements pour les colonnes
     for(i=0; i<t->nbColonne; i++){
-        if(fgets(val, t->nbColonne*t->nbColonne, fichier)!=NULL){
+        if(fgets(val, 4+t->nbColonne*2, fichier)!=NULL){
             //printf("%s\n", &val);
             t->C[i*t->nbColonne]=val[0]-48;
             for(j=0; j<4*t->C[i*t->nbColonne]+t->C[i*t->nbColonne]*2; j++){
@@ -249,12 +274,13 @@ int initSegBloc(tomo *t, FILE* fichier){
             k=0;
         }
     }
-    affichageTest(t);
+    affichageMatrice(t);
     return 1;
 }
 
-void affichageTest(tomo *t){
-    int i=0, j=0;
+int affichageMatrice(tomo *t){
+    int i=0, j=0, result;
+    char reponse;
     printf("Affichage test de la récupération des valeur d'un fichier\nSegment bloc ligne:");
     for(i=0; i<t->nbLigne*t->nbLigne; i++){
         if(i%t->nbLigne==0)
@@ -269,15 +295,22 @@ void affichageTest(tomo *t){
         if(t->C[i]!=-1)
             printf("%d\t", t->C[i]);
     }
-    enumeration_rec(0, 1, t);
+    printf("\n\nLe fichier a-t-il était bien chargé dans les matrices? [O/n]\n");
+    getchar();
+    scanf("%c", &reponse);
+    if(reponse=="n")
+        return 0;
+    result = enumeration_rec(0, 1, t) || enumeration_rec(0, 2, t);
     for(i=0; i<t->nbColonne*t->nbLigne; i++){
         if(i%t->nbColonne==0)
             printf("\n");
         printf("%d\t", t->M[i]);
     }
-    // printf("\n\nAppuyer sur une touche pour revenir au menu principal\n");
-    // getchar();
-    // getchar();
+    printf("\n");
+    printf("\n\nAppuyer sur une touche pour continuer\n");
+    getchar();
+    getchar();
+    return 1;
 }
 
 /*********************************************
