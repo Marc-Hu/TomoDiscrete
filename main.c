@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include<time.h>
 #include"saisieM.c"
 #include"couleurs_terminal.c"
 
@@ -102,7 +103,7 @@ int compare_seq_col(tomo *t, int j){
 }
 
 int enumeration_rec(int k, int c, tomo *t){
-    printf("cycle numéro : %d\n", k);
+    printf("cycle numéro : %d\nTemps : %d\n", k, clock());
     if(c==1)
         printf("Appel c=1\n");
     else   
@@ -446,6 +447,7 @@ void initSegBloc(tomo *t, FILE* fichier, char question){
                     }else{
                         t->L[t->nbLigne*i+k]=val[j]-48;
                     }
+                    printf("%d\t", t->L[t->nbLigne*i+k]);
                     k++;
                 }
             }
@@ -500,6 +502,15 @@ void affichageMatrice(tomo *t, char question){
         exit;
     if(question=='e'){
         result = enumeration_rec(0, 1, t) || enumeration_rec(0, 2, t);
+        for(i=0; i<t->nbColonne*t->nbLigne; i++){
+            if(i%t->nbColonne==0)
+                printf("\n");
+            printf("%d\t", t->M[i]);
+        }
+        printf("\n");
+    }
+    if(question=='v'){
+        testVecteurLigne_Rec(t, t->nbColonne-1, t->L[0]);
         for(i=0; i<t->nbColonne*t->nbLigne; i++){
             if(i%t->nbColonne==0)
                 printf("\n");
@@ -718,7 +729,10 @@ int menuD(){
                     libereMemoire(&p, &t);
 				break;
 			case 2 :
-                printf("N'est pas disponible pour le moment\n");
+                clear_terminal();
+                int l =chargerUnFichier(&t, 'v');
+                if(l)
+                    libereMemoire(&p, &t);
                 break;
             case 3 :
                 printf("N'est pas disponible pour le moment\n");
