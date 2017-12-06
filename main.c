@@ -435,7 +435,7 @@ void initSegBloc(tomo *t, FILE* fichier, char question){
     //Tableau des segements pour les lignes
     for(i=0; i<t->nbLigne; i++){
         if(fgets(val, 4+t->nbColonne*2, fichier)!=NULL){
-            printf("%s\n", &val);
+            // printf("%s\n", &val);
             t->L[i*t->nbLigne]=val[0]-48;
             for(j=0; j<4+t->L[i*t->nbLigne]*2; j++){ //Limitation de la chaîne de caractère en fonction de la première valeur
                 // printf("%c\t", val[j]);
@@ -447,7 +447,7 @@ void initSegBloc(tomo *t, FILE* fichier, char question){
                     }else{
                         t->L[t->nbLigne*i+k]=val[j]-48;
                     }
-                    printf("%d\t", t->L[t->nbLigne*i+k]);
+                    // printf("%d\t", t->L[t->nbLigne*i+k]);
                     k++;
                 }
             }
