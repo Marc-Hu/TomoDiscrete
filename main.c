@@ -231,6 +231,113 @@ int testVecteurColonne_Rec(tomo *t, int j, int l){
 *********************************************/
 /*********************************************
 
+        PARTIE FONCTIONS DE TOMOGRAPHIE
+                PROPAGATION
+
+*********************************************/
+int propagLigne(tomo *t, int *marqueC, int i, int nb){
+    int j, cptcolor=0, c1, c2;
+    nb=0;
+    for(j=0; j<t->nbColonne; i++){
+        if(t->M[i*t->nbColonne+j]==0){
+            t->M[i*t->nbColonne+j]=1;
+            c1=testVecteurLigne_Rec(t, i, t->L[i*t->nbLigne]);
+            t->M[i*t->nbColonne+j]=2;
+            c2=testVecteurLigne_Rec(t, i, t->L[i*t->nbLigne]);
+            t->M[i*t->nbColonne+j]=0;
+            if(!c1 && !c2)
+                return 0;
+            if(c1 && !c2){
+                t->M[i*t->nbColonne+j]=1;
+                cptcolor=cptcolor+1;
+                if(!marqueC[j]){
+                    marqueC[j]=1;
+                    nb++;
+                }
+            }
+            if(!c1 && c2){
+                t->M[i*t->nbColonne+j]=2;
+                cptcolor++;
+                if(!marqueC[j]){
+                    marqueC[j]=1;
+                    nb++;
+                }
+            }
+        }
+    }
+}
+
+int propagColonne(tomo *t, int *marqueL, int i, int nb){
+    int j, cptcolor=0, c1, c2;
+    nb=0;
+    for(j=0; j<t->nbColonne; i++){
+        if(t->M[i*t->nbColonne+j]==0){
+            t->M[i*t->nbColonne+j]=1;
+            c1=testVecteurColonne_Rec(t, i, t->C[i*t->nbColonne]);
+            t->M[i*t->nbColonne+j]=2;
+            c2=testVecteurColonne_Rec(t, i, t->C[i*t->nbColonne]);
+            t->M[i*t->nbColonne+j]=0;
+            if(!c1 && !c2)
+                return 0;
+            if(c1 && !c2){
+                t->M[i*t->nbColonne+j]=1;
+                if(!marqueL[j]){
+                    marqueL[j]=1;
+                    nb++;
+                }
+            }
+            if(!c1 && c2){
+                t->M[i*t->nbColonne+j]=2;
+                cptcolor++;
+                if(!marqueL[j]){
+                    marqueL[j]=1;
+                    nb++;
+                }
+            }
+        }
+    }
+}
+
+int propagation(tomo *t){
+    int *marqueL=malloc(t->nbLigne*sizeof(int)), *marqueC=malloc(t->nbColonne*sizeof(int));
+    int nbmL, nbmC, nb=0, i, j, ok=1;
+    for(i=0; i<t->nbLigne; i++)
+        marqueL[i]=1;
+    for(i=0; i<t->nbColonne; i++)
+        marqueC[i]=1;
+    i=0;
+    while(ok && nbmL!=0 || nbmC!=0){
+        i=0;
+        while(ok && i<t->nbLigne){
+            if(marqueL[i]){
+                ok=propagLigne(t, &marqueC, j, nb);
+                nbmC=nbmC+nb;
+                marqueL[i]=0;
+                nbmL=nbmL-1;
+            }
+            i++;
+        }
+        j=0;
+        while(ok && j<t->nbColonne){
+            if(marqueC[j]){
+                ok=propagColonne(t, &marqueL, j, nb);
+                nbmL=nbmL+nb;
+                marqueC[j]=0;
+                nbmC=nbmC-1;
+            }
+            j++;
+        }
+    }
+    return ok;
+}
+/*********************************************
+
+    FIN PARTIE FONCTIONS DE TOMOGRAPHIE
+                PROPAGATION
+
+*********************************************/
+/*********************************************
+
         PARTIE CHARGEMENT D'UN FICHIER
                 
 *********************************************/
@@ -274,14 +381,13 @@ int chargerUnFichier(tomo *t, char question){
     t->nbLigne=atoi(nbLigne);
     t->nbColonne=atoi(nbColonne);
     if(alloueTomo(t)){
-        if(question=='e')
-            initSegBloc(t, fichier);
+        if(question=='e'){
+            initSegBloc(t, fichier, question);
+        }
         if(question=='v'){
-            initSegBloc(t, fichier);
-            initTT(t);
+            initSegBloc(t, fichier, question);
             printf("%d\n", testVecteurLigne_Rec(t, t->nbColonne-1, t->L[0]));
         }
-            
     }
     fclose(fichier);
     return 1;
@@ -301,6 +407,7 @@ int alloueTomo(tomo *t){
     t->M=matrice;
     t->L=segLigne;
     t->C=segColonne;
+    t->TT=matrice;
     initialiseLigneColonne(t);
     return 1;
 }
@@ -311,14 +418,17 @@ void initialiseLigneColonne(tomo *t){
         t->L[i]=-1;
     for(i=0; i<nbColonne*nbColonne; i++)
         t->C[i]=-1;
-    for(i=0; i<nbLigne*nbColonne; i++)
+    for(i=0; i<nbLigne*nbColonne; i++){
         t->M[i]=0;
+        t->TT[i]==-1;
+    }
+        
 }
 
 /*
 Fonction qui va initialiser les deux tableau 2d afin d'y mettre les nombres de bloc par segement
 */
-int initSegBloc(tomo *t, FILE* fichier){
+void initSegBloc(tomo *t, FILE* fichier, char question){
     char val[]="";
     int i=0, j=0, k=0, temp=0;
     //Tableau des segements pour les lignes
@@ -353,12 +463,12 @@ int initSegBloc(tomo *t, FILE* fichier){
             k=0;
         }
     }
-    affichageMatrice(t);
-    return 1;
+    affichageMatrice(t, question);
 }
 
-int affichageMatrice(tomo *t){
+void affichageMatrice(tomo *t, char question){
     int i=0, j=0, result;
+    char reponse;
     printf("Affichage test de la récupération des valeur d'un fichier\nSegment bloc ligne:");
     for(i=0; i<t->nbLigne*t->nbLigne; i++){
         if(i%t->nbLigne==0)
@@ -373,21 +483,20 @@ int affichageMatrice(tomo *t){
         if(t->C[i]!=-1)
             printf("%d\t", t->C[i]);
     }
-    result = enumeration_rec(0, 1, t) || enumeration_rec(0, 2, t);
-    sleep(2);
-    for(i=0; i<t->nbColonne*t->nbLigne; i++){
-        if(i%t->nbColonne==0)
-            printf("\n");
-        printf("%d\t", t->M[i]);
+    printf("\n\nLe fichier a-t-il était bien chargé dans les matrices? [O/n]\n");
+    getchar();
+    scanf("%c", &reponse);
+    if(reponse=="n")
+        exit;
+    if(question=='e'){
+        result = enumeration_rec(0, 1, t) || enumeration_rec(0, 2, t);
+        for(i=0; i<t->nbColonne*t->nbLigne; i++){
+            if(i%t->nbColonne==0)
+                printf("\n");
+            printf("%d\t", t->M[i]);
+        }
+        printf("\n");
     }
-    return 1;
-}
-
-void initTT(tomo *t){
-    t->TT=malloc((t->nbColonne*t->L[0])*sizeof(int));
-    int i;
-    for(i=0; i<t->nbColonne*t->L[0]; i++)
-        t->TT[i]=-1;
 }
 
 /*********************************************
@@ -595,6 +704,7 @@ int menuD(){
             case 1 : 
                 clear_terminal();
                 chargerUnFichier(&t, 'e');
+                libereMemoire(&p, &t);
 				break;
 			case 2 :
                 chargerUnFichier(&t, 'v');
@@ -603,7 +713,6 @@ int menuD(){
                 chargerUnFichier(&t, 'p');
                 break;
             case 4:
-                libereMemoire(&p, &t);
                 break;
 		} 
 	}
