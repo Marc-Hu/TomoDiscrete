@@ -717,10 +717,10 @@ int menuD(){
                 libereMemoire(&p, &t);
 				break;
 			case 2 :
-                chargerUnFichier(&t, 'v');
+                printf("N'est pas disponible pour le moment\n");
                 break;
             case 3 :
-                chargerUnFichier(&t, 'p');
+                printf("N'est pas disponible pour le moment\n");
                 break;
             case 4:
                 break;
