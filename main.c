@@ -708,13 +708,14 @@ int menuD(){
 	int i;
 	initialisationMenu(&p, 4);
 	affichageMenu(&p);
-	while(i!=3){
+	while(i!=4){
 		i=lanceMenu(&p);
 		switch (i){
             case 1 : 
                 clear_terminal();
-                chargerUnFichier(&t, 'e');
-                libereMemoire(&p, &t);
+                int k =chargerUnFichier(&t, 'e');
+                if(k)
+                    libereMemoire(&p, &t);
 				break;
 			case 2 :
                 printf("N'est pas disponible pour le moment\n");
