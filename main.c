@@ -165,7 +165,8 @@ int testSiAucun(tomo *t, int j1, int j2, int val){
 Fonction qui va tester s'il existe un coloriage possible pour une ligne de la matrice
 */
 int testVecteurLigne_Rec(tomo *t, int j, int l){
-    int c1, c2, colonne=t->nbColonne, Ll=t->L[t->nbLigne*l];
+    printf("j vaut : %d et l vaut : %d\n", j, l);
+    int c1, c2, colonne=t->nbColonne, Ll=t->L[t->nbLigne*l+1];
     if(l==0)
         return testSiAucun(t, 0, j, 2);
     if(l==1 && j==Ll-1)
@@ -222,14 +223,6 @@ int testVecteurColonne_Rec(tomo *t, int j, int l){
     t->TT[j*colonne+l]=c1 || c2;
     return t->TT[j*colonne+l];
 }
-
-void testInstanceRealisable(){
-
-}
-
-void testInstanceNonRealisable(){
-
-}
 /*********************************************
 
     FIN PARTIE FONCTIONS DE TOMOGRAPHIE
@@ -281,12 +274,17 @@ int chargerUnFichier(tomo *t, char question){
     t->nbLigne=atoi(nbLigne);
     t->nbColonne=atoi(nbColonne);
     if(alloueTomo(t)){
-        if(initSegBloc(t, fichier)){
-            fclose(fichier);
-            return 1;
+        if(question=='e')
+            initSegBloc(t, fichier);
+        if(question=='v'){
+            initSegBloc(t, fichier);
+            initTT(t);
+            printf("%d\n", testVecteurLigne_Rec(t, t->nbColonne-1, t->L[0]));
         }
+            
     }
-        
+    fclose(fichier);
+    return 1;
 }
 
 /*
@@ -303,7 +301,6 @@ int alloueTomo(tomo *t){
     t->M=matrice;
     t->L=segLigne;
     t->C=segColonne;
-    t->TT=matrice;
     initialiseLigneColonne(t);
     return 1;
 }
@@ -314,24 +311,22 @@ void initialiseLigneColonne(tomo *t){
         t->L[i]=-1;
     for(i=0; i<nbColonne*nbColonne; i++)
         t->C[i]=-1;
-    for(i=0; i<nbLigne*nbColonne; i++){
+    for(i=0; i<nbLigne*nbColonne; i++)
         t->M[i]=0;
-        t->TT[i]=-1;
-    }
 }
 
 /*
 Fonction qui va initialiser les deux tableau 2d afin d'y mettre les nombres de bloc par segement
 */
 int initSegBloc(tomo *t, FILE* fichier){
-    char val[10]="";
+    char val[]="";
     int i=0, j=0, k=0, temp=0;
     //Tableau des segements pour les lignes
     for(i=0; i<t->nbLigne; i++){
-        if(fgets(val, 4+t->nbLigne*2, fichier)!=NULL){
-            // printf("%s\n", &val);
+        if(fgets(val, 4+t->nbColonne*2, fichier)!=NULL){
+            printf("%s\n", &val);
             t->L[i*t->nbLigne]=val[0]-48;
-            for(j=0; j<4*t->L[i*t->nbLigne]+t->L[i*t->nbLigne]*2; j++){ //Limitation de la chaîne de caractère en fonction de la première valeur
+            for(j=0; j<4+t->L[i*t->nbLigne]*2; j++){ //Limitation de la chaîne de caractère en fonction de la première valeur
                 // printf("%c\t", val[j]);
                 if(val[j]>=48 && val[j]<=57){
                     // printf("%d\t", val[j]-48);
@@ -345,10 +340,10 @@ int initSegBloc(tomo *t, FILE* fichier){
     fgets(val, 10, fichier); // Il y a une ligne vide dans le fichier, on saute juste la ligne vide
     //Tableau des segements pour les colonnes
     for(i=0; i<t->nbColonne; i++){
-        if(fgets(val, 4+t->nbColonne*2, fichier)!=NULL){
+        if(fgets(val, 4+t->nbLigne*2, fichier)!=NULL){
             //printf("%s\n", &val);
             t->C[i*t->nbColonne]=val[0]-48;
-            for(j=0; j<4*t->C[i*t->nbColonne]+t->C[i*t->nbColonne]*2; j++){
+            for(j=0; j<4+t->C[i*t->nbColonne]*2; j++){
                 if(val[j]>=48 && val[j]<=57){
                     // printf("%d\t", val[j]-48);
                     t->C[t->nbColonne*i+k]=val[j]-48;
@@ -364,7 +359,6 @@ int initSegBloc(tomo *t, FILE* fichier){
 
 int affichageMatrice(tomo *t){
     int i=0, j=0, result;
-    char reponse;
     printf("Affichage test de la récupération des valeur d'un fichier\nSegment bloc ligne:");
     for(i=0; i<t->nbLigne*t->nbLigne; i++){
         if(i%t->nbLigne==0)
@@ -379,22 +373,21 @@ int affichageMatrice(tomo *t){
         if(t->C[i]!=-1)
             printf("%d\t", t->C[i]);
     }
-    printf("\n\nLe fichier a-t-il était bien chargé dans les matrices? [O/n]\n");
-    getchar();
-    scanf("%c", &reponse);
-    if(reponse=="n")
-        return 0;
     result = enumeration_rec(0, 1, t) || enumeration_rec(0, 2, t);
+    sleep(2);
     for(i=0; i<t->nbColonne*t->nbLigne; i++){
         if(i%t->nbColonne==0)
             printf("\n");
         printf("%d\t", t->M[i]);
     }
-    printf("\n");
-    printf("\n\nAppuyer sur une touche pour continuer\n");
-    getchar();
-    getchar();
     return 1;
+}
+
+void initTT(tomo *t){
+    t->TT=malloc((t->nbColonne*t->L[0])*sizeof(int));
+    int i;
+    for(i=0; i<t->nbColonne*t->L[0]; i++)
+        t->TT[i]=-1;
 }
 
 /*********************************************
