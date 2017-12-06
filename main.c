@@ -440,7 +440,12 @@ void initSegBloc(tomo *t, FILE* fichier, char question){
                 // printf("%c\t", val[j]);
                 if(val[j]>=48 && val[j]<=57){
                     // printf("%d\t", val[j]-48);
-                    t->L[t->nbLigne*i+k]=val[j]-48;
+                    if(val[j+1]>=48 && val[j+1]<=57){
+                        t->L[t->nbLigne*i+k]=(val[j]-48)*10+val[j+1]-48;
+                        j++;
+                    }else{
+                        t->L[t->nbLigne*i+k]=val[j]-48;
+                    }
                     k++;
                 }
             }
@@ -456,7 +461,12 @@ void initSegBloc(tomo *t, FILE* fichier, char question){
             for(j=0; j<4+t->C[i*t->nbColonne]*2; j++){
                 if(val[j]>=48 && val[j]<=57){
                     // printf("%d\t", val[j]-48);
-                    t->C[t->nbColonne*i+k]=val[j]-48;
+                    if(val[j+1]>=48 && val[j+1]<=57){
+                        t->C[t->nbColonne*i+k]=(val[j]-48)*10+val[j+1]-48;
+                        j++;
+                    }else{
+                        t->C[t->nbColonne*i+k]=val[j]-48;
+                    }
                     k++;
                 }
             }
