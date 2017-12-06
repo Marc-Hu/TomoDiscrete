@@ -435,6 +435,8 @@ void initSegBloc(tomo *t, FILE* fichier, char question){
     //Tableau des segements pour les lignes
     for(i=0; i<t->nbLigne; i++){
         if(fgets(val, 4+t->nbColonne*2, fichier)!=NULL){
+            while(val[0]-48<0)
+                fgets(val, 4+t->nbColonne*2, fichier);
             // printf("%s\n", &val);
             t->L[i*t->nbLigne]=val[0]-48;
             for(j=0; j<4+t->L[i*t->nbLigne]*2; j++){ //Limitation de la chaîne de caractère en fonction de la première valeur
@@ -458,6 +460,8 @@ void initSegBloc(tomo *t, FILE* fichier, char question){
     //Tableau des segements pour les colonnes
     for(i=0; i<t->nbColonne; i++){
         if(fgets(val, 4+t->nbLigne*2, fichier)!=NULL){
+            while(val[0]-48<0)
+                fgets(val, 4+t->nbLigne*2, fichier);
             //printf("%s\n", &val);
             t->C[i*t->nbColonne]=val[0]-48;
             for(j=0; j<4+t->C[i*t->nbColonne]*2; j++){
@@ -485,14 +489,14 @@ void affichageMatrice(tomo *t, char question){
     for(i=0; i<t->nbLigne*t->nbLigne; i++){
         if(i%t->nbLigne==0)
             printf("\n");
-        if(t->L[i]!=-1)
+        if(t->L[i]>=0)
             printf("%d\t", t->L[i]);
     }
     printf("\nAffichage test de la récupération des valeur d'un fichier\nSegment bloc colonne:");
     for(i=0; i<t->nbColonne*t->nbColonne; i++){
         if(i%t->nbColonne==0)
             printf("\n");
-        if(t->C[i]!=-1)
+        if(t->C[i]>=0)
             printf("%d\t", t->C[i]);
     }
     printf("\n\nLe fichier a-t-il était bien chargé dans les matrices? [O/n]\n");
