@@ -103,7 +103,7 @@ int compare_seq_col(tomo *t, int j){
 }
 
 int enumeration_rec(int k, int c, tomo *t){
-    printf("cycle numéro : %d\nTemps : %d\n", k, clock());
+    printf("cycle numéro : %d\nTemps : %ld\n", k, clock());
     if(c==1)
         printf("Appel c=1\n");
     else   
@@ -307,11 +307,11 @@ int propagation(tomo *t){
     for(i=0; i<t->nbColonne; i++)
         marqueC[i]=1;
     i=0;
-    while(ok && nbmL!=0 || nbmC!=0){
+    while((ok && nbmL!=0) || nbmC!=0){
         i=0;
         while(ok && i<t->nbLigne){
             if(marqueL[i]){
-                ok=propagLigne(t, &marqueC, j, nb);
+                ok=propagLigne(t, marqueC, j, nb);
                 nbmC=nbmC+nb;
                 marqueL[i]=0;
                 nbmL=nbmL-1;
@@ -321,7 +321,7 @@ int propagation(tomo *t){
         j=0;
         while(ok && j<t->nbColonne){
             if(marqueC[j]){
-                ok=propagColonne(t, &marqueL, j, nb);
+                ok=propagColonne(t, marqueL, j, nb);
                 nbmL=nbmL+nb;
                 marqueC[j]=0;
                 nbmC=nbmC-1;
@@ -398,7 +398,6 @@ int alloueTomo(tomo *t){
     int *matrice=malloc((t->nbColonne*t->nbLigne)*sizeof(int));
     int *segColonne=malloc((t->nbColonne*t->nbColonne)*sizeof(int));
     int *segLigne=malloc((t->nbLigne*t->nbLigne)*sizeof(int));
-    int i=0;
     t->M=matrice;
     t->L=segLigne;
     t->C=segColonne;
@@ -425,13 +424,13 @@ Il va ensuite lancer la fonction qui va afficher tous les tableaux de tableaux
 */
 void initSegBloc(tomo *t, FILE* fichier, char question){
     char val[256]="";
-    int i=0, j=0, k=0, temp=0;
+    int i=0, j=0, k=0;
     //Tableau des segements pour les lignes
     for(i=0; i<t->nbLigne; i++){
         fgets(val, sizeof(val), fichier);
         while(val[0]-48<0)
             fgets(val, sizeof(val), fichier);
-        printf("%s\n", &val);
+        // printf("%s\n", val);
         t->L[i*t->nbLigne]=val[0]-48;
         for(j=0; j<4+t->L[i*t->nbLigne]*3; j++){ //Limitation de la chaîne de caractère en fonction de la première valeur
             // printf("%c\t", val[j]);
@@ -480,7 +479,7 @@ Fonction qui va afficher les segments de blocs pour les lignes et les colonnes
 Selon le choix du menu, il va lancer la fonction enumeration ou testlignevecteur
 */
 void affichageMatrice(tomo *t, char question){
-    int i=0, j=0, result;
+    int i=0, result;
     char reponse;
     printf("Affichage test de la récupération des valeur d'un fichier\nSegment bloc ligne:");
     for(i=0; i<t->nbLigne*t->nbLigne; i++){
@@ -510,6 +509,7 @@ void affichageMatrice(tomo *t, char question){
         allouTT(t);
         printf("In vector\n");
         result = testVecteurLigne_Rec(t, 0, t->nbColonne-1);
+        printf("Matrice TT :\n");
         for(i=0;i<t->nbColonne*t->nbLigne;i++)
             printf("%d\t", t->TT[i]);
     } else {
@@ -517,13 +517,15 @@ void affichageMatrice(tomo *t, char question){
         printf("In Propagation\n");
         result = propagation(t);
     }
-    printf("\nResult = %d\n", result);
-    clear_terminal();
+    printf("\nResult = %d\nMatrice principal :\n", result);
     for(i=0; i<t->nbColonne*t->nbLigne; i++){
         if(i%t->nbColonne==0)
             printf("\n");
         printf("%d\t", t->M[i]);
     }
+    printf("\n\nAppuyer sur une touche pour revenir au menu principal\n");
+    getchar();
+    getchar();
 }
 
 /*
