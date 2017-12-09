@@ -352,7 +352,7 @@ Et pour finir on va lancer la fonction d'allocation dynamique de la mémoire
 */
 int chargerUnFichier(tomo *t, char question){
     FILE* fichier = NULL;
-    char filename[10]="", info[6]="", nbColonne[3]="", nbLigne[3]="";
+    char filename[50]="", info[10]="", nbColonne[5]="", nbLigne[5]="";
     int i=0, j=0;
     printf("Entrer le nom du fichier à charger parmi ces propositions (écrire le nom entier): \n");
     system("ls instances/*.tom");
@@ -364,8 +364,8 @@ int chargerUnFichier(tomo *t, char question){
         return 0;
     }
     printf("Fichier ouvert avec succès!\n");
-    fgets (info, 6, fichier);
-    for(i=0; i<6; i++){				//On va mettre dans les différents chaînes de caractères les valeurs.
+    fgets (info, 10, fichier);
+    for(i=0; i<10; i++){				//On va mettre dans les différents chaînes de caractères les valeurs.
     	if(info[i]!=' ' && i<2)		//Si on ne rencontre pas d'expace et qu'on a déjà lu 2 caractère on met les caractères dans la chaine de caractère nbCol
     		nbLigne[i]=info[i];
     	else if (info[i]==' '){		//Sinon si on rencontre le caractère vide (cad l'espace) on incrémente i pour passer au nombre de ligne et on met le première caractère dans nbLign (on oublie pas d'incrémenter j)
@@ -387,10 +387,11 @@ int chargerUnFichier(tomo *t, char question){
         }
         if(question=='v'){
             initSegBloc(t, fichier, question);
-            printf("%d\n", testVecteurLigne_Rec(t, t->nbColonne-1, t->L[0]));
+            // printf("%d\n", testVecteurLigne_Rec(t, t->nbColonne-1, t->L[0]));
         }
     }
     fclose(fichier);
+    // printf("test1\n");
     return 1;
 }
 
@@ -408,60 +409,59 @@ int alloueTomo(tomo *t){
     t->M=matrice;
     t->L=segLigne;
     t->C=segColonne;
-    t->TT=matrice;
     initialiseLigneColonne(t);
     return 1;
 }
 
+/*
+Initialise tous les tableaux de tableaux, la matrice principal, les segements de blocs pour les lignes et colonnes
+*/
 void initialiseLigneColonne(tomo *t){
     int i=0, nbLigne=t->nbLigne, nbColonne=t->nbColonne;
     for(i=0; i<nbLigne*nbLigne; i++)
         t->L[i]=-1;
     for(i=0; i<nbColonne*nbColonne; i++)
         t->C[i]=-1;
-    for(i=0; i<nbLigne*nbColonne; i++){
+    for(i=0; i<nbLigne*nbColonne; i++)
         t->M[i]=0;
-        t->TT[i]==-1;
-    }
-        
 }
 
 /*
-Fonction qui va initialiser les deux tableau 2d afin d'y mettre les nombres de bloc par segement
+Fonction qui va initialiser les deux tableau 2d afin d'y mettre les nombres de bloc par segement pour les lignes et les colonnes
+Il va ensuite lancer la fonction qui va afficher tous les tableaux de tableaux
 */
 void initSegBloc(tomo *t, FILE* fichier, char question){
-    char val[]="";
+    char val[256]="";
     int i=0, j=0, k=0, temp=0;
     //Tableau des segements pour les lignes
     for(i=0; i<t->nbLigne; i++){
-        if(fgets(val, 4+t->nbColonne*2, fichier)!=NULL){
-            while(val[0]-48<0)
-                fgets(val, 4+t->nbColonne*2, fichier);
-            // printf("%s\n", &val);
-            t->L[i*t->nbLigne]=val[0]-48;
-            for(j=0; j<4+t->L[i*t->nbLigne]*2; j++){ //Limitation de la chaîne de caractère en fonction de la première valeur
-                // printf("%c\t", val[j]);
-                if(val[j]>=48 && val[j]<=57){
-                    // printf("%d\t", val[j]-48);
-                    if(val[j+1]>=48 && val[j+1]<=57){
-                        t->L[t->nbLigne*i+k]=(val[j]-48)*10+val[j+1]-48;
-                        j++;
-                    }else{
-                        t->L[t->nbLigne*i+k]=val[j]-48;
-                    }
-                    // printf("%d\t", t->L[t->nbLigne*i+k]);
-                    k++;
+        fgets(val, sizeof(val), fichier);
+        while(val[0]-48<0)
+            fgets(val, sizeof(val), fichier);
+        printf("%s\n", &val);
+        t->L[i*t->nbLigne]=val[0]-48;
+        for(j=0; j<4+t->L[i*t->nbLigne]*3; j++){ //Limitation de la chaîne de caractère en fonction de la première valeur
+            // printf("%c\t", val[j]);
+            if(val[j]>=48 && val[j]<=57){
+                // printf("%d\t", val[j]-48);
+                if(val[j+1]>=48 && val[j+1]<=57){
+                    t->L[t->nbLigne*i+k]=(val[j]-48)*10+val[j+1]-48;
+                    j++;
+                }else{
+                    t->L[t->nbLigne*i+k]=val[j]-48;
                 }
+                // printf("%d\t", t->L[t->nbLigne*i+k]);
+                k++;
             }
-            k=0;
         }
+        k=0;
     }
-    fgets(val, 10, fichier); // Il y a une ligne vide dans le fichier, on saute juste la ligne vide
+    fgets(val, sizeof(val), fichier); // Il y a une ligne vide dans le fichier, on saute juste la ligne vide
     //Tableau des segements pour les colonnes
     for(i=0; i<t->nbColonne; i++){
-        if(fgets(val, 4+t->nbLigne*2, fichier)!=NULL){
+        if(fgets(val, sizeof(val), fichier)!=NULL){
             while(val[0]-48<0)
-                fgets(val, 4+t->nbLigne*2, fichier);
+                fgets(val, sizeof(val), fichier);
             //printf("%s\n", &val);
             t->C[i*t->nbColonne]=val[0]-48;
             for(j=0; j<4+t->C[i*t->nbColonne]*2; j++){
@@ -482,6 +482,10 @@ void initSegBloc(tomo *t, FILE* fichier, char question){
     affichageMatrice(t, question);
 }
 
+/*
+Fonction qui va afficher les segments de blocs pour les lignes et les colonnes
+Selon le choix du menu, il va lancer la fonction enumeration ou testlignevecteur
+*/
 void affichageMatrice(tomo *t, char question){
     int i=0, j=0, result;
     char reponse;
@@ -500,28 +504,38 @@ void affichageMatrice(tomo *t, char question){
             printf("%d\t", t->C[i]);
     }
     printf("\n\nLe fichier a-t-il était bien chargé dans les matrices? [O/n]\n");
-    getchar();
     scanf("%c", &reponse);
+    scanf("%c", &reponse);
+    clear_terminal();
     if(reponse=="n")
         exit;
     if(question=='e'){
+        printf("In enum\n");
         result = enumeration_rec(0, 1, t) || enumeration_rec(0, 2, t);
-        for(i=0; i<t->nbColonne*t->nbLigne; i++){
-            if(i%t->nbColonne==0)
-                printf("\n");
-            printf("%d\t", t->M[i]);
-        }
         printf("\n");
     }
     if(question=='v'){
-        testVecteurLigne_Rec(t, t->nbColonne-1, t->L[0]);
-        for(i=0; i<t->nbColonne*t->nbLigne; i++){
-            if(i%t->nbColonne==0)
-                printf("\n");
-            printf("%d\t", t->M[i]);
-        }
-        printf("\n");
+        allouTT(t);
+        printf("In vector\n");
+        result = testVecteurLigne_Rec(t, t->nbColonne-1, t->L[0]);
+        printf("\nResult = %d\n", result);
     }
+    for(i=0; i<t->nbColonne*t->nbLigne; i++){
+        if(i%t->nbColonne==0)
+            printf("\n");
+        printf("%d\t", t->M[i]);
+    }
+}
+
+/*
+Fonction qui va allouer de la mémoire au tableau de tableau TT
+Et va initialiser toutes les cases à -1 qui veut dire 'non visité'
+*/
+void allouTT(tomo *t){
+    int i;
+    t->TT=malloc((t->nbColonne*t->L[0])*sizeof(int));
+    for(i=0; i<t->nbColonne*t->L[0]; i++)
+        t->TT[i]=-1;
 }
 
 /*********************************************
@@ -569,13 +583,19 @@ void initialisationMenu(menu *p, int nb){
 
 //Libère la mémoire pour le menu, la flèche, le tableau de chaine de caractère, les chaines de charactère
 
-void libereMemoire(menu *p, tomo *t){
+void libereMemoire(menu *p){
 	free(p->menu);
 	free(p->fleche);
     free(p->choix);
+}
+
+void libereTomo(tomo *t){
     free(t->C);
     free(t->L);
     free(t->M);
+}
+
+void libereTomoTT(tomo *t){
     free(t->TT);
 }
 
@@ -728,20 +748,20 @@ int menuD(){
 		switch (i){
             case 1 : 
                 clear_terminal();
-                int k =chargerUnFichier(&t, 'e');
-                if(k)
-                    libereMemoire(&p, &t);
+                chargerUnFichier(&t, 'e');
+                libereTomo(&t);
 				break;
 			case 2 :
                 clear_terminal();
-                int l =chargerUnFichier(&t, 'v');
-                if(l)
-                    libereMemoire(&p, &t);
+                chargerUnFichier(&t, 'v');
+                libereTomo(&t);
+                libereTomoTT(&t);
                 break;
             case 3 :
                 printf("N'est pas disponible pour le moment\n");
                 break;
             case 4:
+            libereMemoire(&p);
                 break;
 		} 
 	}
