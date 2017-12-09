@@ -167,15 +167,15 @@ Fonction qui va tester s'il existe un coloriage possible pour une ligne de la ma
 */
 int testVecteurLigne_Rec(tomo *t, int j, int l){
     printf("j vaut : %d et l vaut : %d\n", j, l);
-    int c1, c2, colonne=t->nbColonne, Ll=t->L[t->nbLigne*l+1];
+    int c1, c2, Ll=t->L[t->nbLigne*j+1];
     if(l==0)
         return testSiAucun(t, 0, j, 2);
     if(l==1 && j==Ll-1)
         return testSiAucun(t, 0, j, 1);
     if(j<=Ll-1)
         return 0;
-    if(t->TT[j*colonne+l]!=-1)
-        return t->TT[j*colonne+l];
+    if(t->TT[j*t->L[0]+l]!=-1)
+        return t->TT[j*t->L[0]+l];
     if(t->M[j]==2){
         c1=0;
     }else{
@@ -190,8 +190,8 @@ int testVecteurLigne_Rec(tomo *t, int j, int l){
             c2=testVecteurLigne_Rec(t, j-Ll-1, l-1);
         }
     }
-    t->TT[j*colonne+l]=c1 || c2;
-    return t->TT[j*colonne+l];
+    t->TT[j*t->L[0]+l]=c1 || c2;
+    return t->TT[j*t->L[0]+l];
 }
 
 /*
@@ -381,15 +381,8 @@ int chargerUnFichier(tomo *t, char question){
     printf("Nombre de lignes : %d; Nombre de colonnes : %d\n", atoi(nbLigne), atoi(nbColonne));
     t->nbLigne=atoi(nbLigne);
     t->nbColonne=atoi(nbColonne);
-    if(alloueTomo(t)){
-        if(question=='e'){
-            initSegBloc(t, fichier, question);
-        }
-        if(question=='v'){
-            initSegBloc(t, fichier, question);
-            // printf("%d\n", testVecteurLigne_Rec(t, t->nbColonne-1, t->L[0]));
-        }
-    }
+    if(alloueTomo(t))
+        initSegBloc(t, fichier, question);
     fclose(fichier);
     // printf("test1\n");
     return 1;
@@ -513,13 +506,19 @@ void affichageMatrice(tomo *t, char question){
         printf("In enum\n");
         result = enumeration_rec(0, 1, t) || enumeration_rec(0, 2, t);
         printf("\n");
-    }
-    if(question=='v'){
+    } else if(question=='v'){
         allouTT(t);
         printf("In vector\n");
-        result = testVecteurLigne_Rec(t, t->nbColonne-1, t->L[0]);
-        printf("\nResult = %d\n", result);
+        result = testVecteurLigne_Rec(t, 0, t->nbColonne-1);
+        for(i=0;i<t->nbColonne*t->nbLigne;i++)
+            printf("%d\t", t->TT[i]);
+    } else {
+        allouTT(t);
+        printf("In Propagation\n");
+        result = propagation(t);
     }
+    printf("\nResult = %d\n", result);
+    clear_terminal();
     for(i=0; i<t->nbColonne*t->nbLigne; i++){
         if(i%t->nbColonne==0)
             printf("\n");
@@ -744,24 +743,25 @@ int menuD(){
 	initialisationMenu(&p, 4);
 	affichageMenu(&p);
 	while(i!=4){
-		i=lanceMenu(&p);
+        i=lanceMenu(&p);
+        clear_terminal();
 		switch (i){
             case 1 : 
-                clear_terminal();
                 chargerUnFichier(&t, 'e');
                 libereTomo(&t);
 				break;
 			case 2 :
-                clear_terminal();
                 chargerUnFichier(&t, 'v');
                 libereTomo(&t);
                 libereTomoTT(&t);
                 break;
             case 3 :
-                printf("N'est pas disponible pour le moment\n");
+                chargerUnFichier(&t, 'p');
+                libereTomo(&t);
+                libereTomoTT(&t);
                 break;
             case 4:
-            libereMemoire(&p);
+                libereMemoire(&p);
                 break;
 		} 
 	}
