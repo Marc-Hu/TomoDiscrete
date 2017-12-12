@@ -1,6 +1,6 @@
 /**
  * \file Tomographie
- * \author HU Marc
+ * \author HU Marc, Zekri Raphael
  * \date 27 novembre 2017
  *
  * Programme regroupant les fonctions du mini-projet tomographie discrète
